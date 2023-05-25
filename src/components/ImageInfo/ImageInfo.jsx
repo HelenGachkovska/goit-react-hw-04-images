@@ -1,4 +1,4 @@
-import React, { Component, useState } from 'react';
+import React, {useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
 import ErrorMassage from 'components/ErrorMassage/index';
 import { fetchImage } from 'servise/imgApi';
@@ -14,194 +14,93 @@ const Status = {
   REJECTED: 'rejected',
 };
 
-
-function ImageInfo(searchValue) {
-  const [status, setStatus] = useState(Status.IDLE)
+function ImageInfo({ searchValue }) {
+  const [value, setValue] = useState('');
+  const [status, setStatus] = useState(Status.IDLE);
   const [images, setImages] = useState([]);
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(null);
   const [totalPages, setTotalPages] = useState(0);
-  const [showModal, setShowModal] = useState(false)
+  const [showModal, setShowModal] = useState(false);
   const [error, setError] = useState(null);
+  const [modalData, setModalData] = useState({ largeImageURL: '', tags: '' });
 
+   useEffect(() => {
+     setPage(1);
+     setValue(searchValue)
+  }, [searchValue]);
 
+  useEffect(() => {
+    
+    if (!value) return;
+
+     if (page === 1) {
+      setImages([]);
+    }
+    setStatus(Status.PENDING);   
+    fetchImage(value, page)
+      .then(data => {
+       
+        setImages(prev => [...prev, ...data.hits]);
+        setStatus(Status.RESOLVED);
+        setTotalPages(Math.floor(data.totalHits / 12));
+        
+      })
+      .catch(error => {
+        setError(error);
+        setStatus(Status.REJECTED);
+      });
+  }, [error, value, page]);
 
   const handleLoadMore = () => {
-    setPage(prev => prev + 1 );
-  };
- 
-  const   setModalData = modalData => {
-    this.setState({ modalData, showModal: true });
+    setPage(prev => prev + 1);
   };
 
-if (status === 'idle') {
-      return;
-    }
+  const handleModalClose = () => {
+    setShowModal(false);
+  };
 
-    if (status === 'pending') {
-      return (
-        <>
-          {page !== 1 && (
-            <ImageGallery
-              images={images}
-              onImageClick={setModalData}
-            />
-          )}
-          <Loader />
-          {totalPages > 12 && <Button onClick={handleLoadMore} />}
-        </>
-      );
-    }
-    if (status === 'rejected') {
-      return <ErrorMassage massage={error.massage} />;
-    }
+  const getModalData = ({ largeImageURL, tags }) => {
+    setModalData({ largeImageURL, tags });
+    setShowModal(true);
+  };
 
-    if (images.length === 0) {
-      return <ErrorMassage massage={`Nothing was found for your request.`} />;
-    }
-
-    if (status === 'resolved') {
-      return (
-        <>
-          <ImageGallery
-            images={images}
-            onImageClick={setModalData}
-          />
-          {images.length > 0 && status !== 'pending' && page <= totalPages && (
-            <Button onClick={handleLoadMore} />
-          )}
-          {showModal && (
-            <Modal modalData={modalData} onModalClose={handleModalClose} />
-          )}
-        </>
-      );
-    }
+  if (status === 'idle') {
+    return;
   }
 
-  
+  if (status === 'pending') {
+    return (
+      <>
+        {page !== 1 && (
+          <ImageGallery images={images} onImageClick={getModalData} />
+        )}
+        <Loader />
+      </>
+    );
+  }
+  if (status === 'rejected') {
+    return <ErrorMassage massage={error.massage} />;
+  }
 
+  if (images.length === 0) {
+    return <ErrorMassage massage={`Nothing was found for your request.`} />;
+  }
 
-// class OldImageInfo extends Component {
-//   state = {
-//     error: null,
-//     status: Status.IDLE,
-//     images: [],
-//     page: 1,
-//     totalPages: 0,
-//     showModal: false,
-//   };
-
-//   static getDerivedStateFromProps(nextProps, prevState) {
-//     if (prevState.value !== nextProps.value) {
-//       return { page: 1, value: nextProps.value };
-//     }
-//     return null;
-//   }
-
-//   componentDidUpdate(prevProps, prevState) {
-//     const prevValue = prevProps.searchValue;
-//     const nextValue = this.props.searchValue;
-    
-//      if (prevValue !== nextValue) {
-//         this.setState({ page: 1 });
-//       }
-
-//     if (prevValue !== nextValue || prevState.page !== this.state.page) {
-//       this.setState({ status: Status.PENDING });
-
-     
-
-//       if (this.state.error) {
-//         this.setState({ error: null });
-//       }
-
-//       fetchImage(nextValue, this.state.page)
-//         .then(images => {
-//           this.setState({
-//             images:
-//               this.state.page === 1
-//                 ? images.hits
-//                 : [...prevState.images, ...images.hits],
-//             status: Status.RESOLVED,
-//             totalPages: Math.floor(images.totalHits / 12),
-//           });
-//         })
-//         .catch(error => this.setState({ error, status: Status.REJECTED }));
-//     }
-
-//     // if (this.state.page !== 1) {
-//     //   const scrollOnLoadButton = () => {
-//     //     window.scrollTo({
-//     //       top: document.documentElement.scrollHeight,
-//     //       behavior: 'smooth',
-//     //     });
-//     //   };
-//     //   scrollOnLoadButton();
-//     // }
-//   }
-
-//   handleLoadMore = () => {
-//     this.setState(prevState => ({ page: prevState.page + 1 }));
-//   };
-
-//   setModalData = modalData => {
-//     this.setState({ modalData, showModal: true });
-//   };
-
-//   handleModalClose = () => {
-//     this.setState({ showModal: false });
-//   };
-
-//   render() {
-//     const { images, error, status, page, totalPages, showModal, modalData } =
-//       this.state;
-
-//     if (status === 'idle') {
-//       return;
-//     }
-
-//     if (status === 'pending') {
-//       return (
-//         <>
-//           {page !== 1 && (
-//             <ImageGallery
-//               images={this.state.images}
-//               onImageClick={this.setModalData}
-//             />
-//           )}
-//           <Loader />
-//           {totalPages > 12 && <Button onClick={this.handleLoadMore} />}
-//         </>
-//       );
-//     }
-//     if (status === 'rejected') {
-//       return <ErrorMassage massage={error.massage} />;
-//     }
-
-//     if (images.length === 0) {
-//       return <ErrorMassage massage={`Nothing was found for your request.`} />;
-//     }
-
-//     if (status === 'resolved') {
-//       return (
-//         <>
-//           <ImageGallery
-//             images={this.state.images}
-//             onImageClick={this.setModalData}
-//           />
-//           {images.length > 0 && status !== 'pending' && page <= totalPages && (
-//             <Button onClick={this.handleLoadMore} />
-//           )}
-//           {showModal && (
-//             <Modal modalData={modalData} onModalClose={this.handleModalClose} />
-//           )}
-//         </>
-//       );
-//     }
-//   }
-// }
+  if (status === 'resolved') {
+    return (
+      <>
+        <ImageGallery images={images} onImageClick={getModalData} />
+        {images.length > 0 && status !== 'pending' && page < totalPages && (
+          <Button onClick={handleLoadMore} />
+        )}
+        {showModal && <Modal modalData={modalData} close={handleModalClose} />}
+      </>
+    );
+  }
+}
 
 ImageInfo.propTypes = {
-  searchValue: PropTypes.string.isRequired,
+  value: PropTypes.string,
 };
 
 export default ImageInfo;
