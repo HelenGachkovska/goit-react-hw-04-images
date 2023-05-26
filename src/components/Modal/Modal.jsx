@@ -1,9 +1,9 @@
 import { useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { createPortal } from 'react-dom';
+// import { createPortal } from 'react-dom';
 import { Overlay, ModalContainer } from './styled';
 
-const modalRoot = document.querySelector('#modal-root');
+// const modalRoot = document.querySelector('#modal-root');
 
 function Modal({ modalData, close }) {
   const { largeImageURL, tags } = modalData;
@@ -22,13 +22,12 @@ function Modal({ modalData, close }) {
     if (e.currentTarget === e.target) close();
   };
 
-  return createPortal(
+  return (
     <Overlay onClick={handleBackdropClick}>
       <ModalContainer>
         <img src={largeImageURL} alt={tags} />
       </ModalContainer>
-    </Overlay>,
-    modalRoot
+    </Overlay>
   );
 }
 
